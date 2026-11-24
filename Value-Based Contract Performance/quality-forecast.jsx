@@ -5,19 +5,26 @@
 
 const { useState, useMemo } = React;
 
+// Estimated cost to run the selected plan actions (used for Net ROI)
+const PLAN_ACTION_COST = 48000;
+
 // ── Trajectory chart ────────────────────────────────────────────────
-function TrajectoryChart({ width = 880, height = 250, withPlan }) {
+function TrajectoryChart({ width = 880, height = 250, withPlan, runEnd, planEnd }) {
   const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-  const actual = [56, 58, 59, 60, 61];                  // through May
-  const runRate = [61, 62, 63, 63.5, 64, 64, 64.2];     // Jun→Dec at current pace
-  const plan    = [61, 63, 65, 67, 69, 70.5, 71];       // Jun→Dec with plan
+  // Actual composite each month (Jan→May), scored from each measure's trend
+  const actual = [0, 1, 2, 3, 4].map(i =>
+    compositeScore(MEASURES.map(m => ({ ...m, actual: m.trend[i] }))));
+  const now = actual[actual.length - 1];
+  // May→Dec paths from today's score to the EOY score
+  const ramp = end => Array.from({ length: 8 }, (_, i) => +(now + (end - now) * i / 7).toFixed(1));
+  const runRate = ramp(runEnd);   // at current pace
+  const plan    = ramp(planEnd);  // with selected plan actions
   const target = CONTRACT.qualityTarget;
-  const ceiling = 76;
 
   const pad = { l: 38, r: 16, t: 14, b: 28 };
   const w = width - pad.l - pad.r;
   const h = height - pad.t - pad.b;
-  const yMin = 50, yMax = 80;
+  const yMin = 0, yMax = 100;
   const x = i => pad.l + (i / 11) * w;
   const y = v => pad.t + (1 - (v - yMin) / (yMax - yMin)) * h;
 
@@ -31,7 +38,7 @@ function TrajectoryChart({ width = 880, height = 250, withPlan }) {
     ...plan.slice().reverse().map((v, i) => `${x(11 - i)},${y(v)}`),
   ].join(' ') : null;
 
-  const yTicks = [50, 60, 68, 76, 80];
+  const yTicks = [0, 25, 50, 75, 100];
   const today = x(4);
 
   return (
@@ -270,13 +277,16 @@ function QualityForecastView() {
       const selectedGaps = m.gaps.filter(g => plan[`${m.id}:${g.kind}`]);
       if (!selectedGaps.length) return;
       const recapture = selectedGaps.reduce((s, g) => s + g.yield * g.count, 0) / m.denominator * 100;
-      const newActual = m.inverse ? m.actual - recapture : m.actual + recapture;
+      // Capped at the measure's ceiling (best plausible attainment)
+      const newActual = m.inverse
+        ? Math.max(m.ceiling, m.actual - recapture)
+        : Math.min(m.ceiling, m.actual + recapture);
       total += measureDollars(m, newActual) - measureDollars(m, m.actual);
     });
     return total;
   }, [plan]);
 
-  const planScoreGain = Math.round(planUpside / CONTRACT.qualityPool * 100);
+  const planScoreGain = Math.round(planUpside / CONTRACT.qualityPool * 1000) / 10;
   const selectedCount = Object.values(plan).filter(Boolean).length;
 
   // Sort measures by upside (descending)
@@ -287,9 +297,9 @@ function QualityForecastView() {
       return ub - ua;
     }), []);
 
-  const runRateScore = Math.round(MEASURES.reduce((s, m) => s + pointsAtLevel(m, m.runRate), 0) * 100 / totalWeight);
+  const runRateScore = compositeScore(MEASURES, 'runRate');
   const runRateDollars = MEASURES.reduce((s, m) => s + measureDollars(m, m.runRate), 0);
-  const ceilingScore = Math.round(MEASURES.reduce((s, m) => s + pointsAtLevel(m, m.ceiling), 0) * 100 / totalWeight);
+  const ceilingScore = compositeScore(MEASURES, 'ceiling');
   const ceilingDollars = MEASURES.reduce((s, m) => s + measureDollars(m, m.ceiling), 0);
   const currentScore = CONTRACT.qualityScore;
   const currentDollars = MEASURES.reduce((s, m) => s + measureDollars(m, m.actual), 0);
@@ -305,7 +315,7 @@ function QualityForecastView() {
           <h1 style={{ fontSize: 22, fontWeight: 700, color: T.text, letterSpacing: -0.2 }}>Quality Forecast</h1>
         </div>
         <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-          <Pill color={T.warn} bg={T.warnLight} sm>● At Risk</Pill>
+          <Pill color={STATUS[CONTRACT.status].text} bg={STATUS[CONTRACT.status].bg} sm>● {STATUS[CONTRACT.status].label}</Pill>
           <Pill color={T.muted} bg="#fff" sm>Last refresh: 4 hrs ago</Pill>
           <button style={{
             background: T.accent, color: '#fff', border: 'none', borderRadius: 7,
@@ -317,11 +327,14 @@ function QualityForecastView() {
       {/* KPI row */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 14, marginBottom: 18 }}>
         {[
-          { label: 'CURRENT SCORE', big: `${currentScore}`, sub: `of 100 · vs target ${CONTRACT.qualityTarget}`, accent: T.accent, foot: `${fmtMoney(currentDollars)} secured`, pillColor: T.warn, pillBg: T.warnLight, pillText: '−7 vs target' },
+          { label: 'CURRENT SCORE', big: `${currentScore}`, sub: `of 100 · vs target ${CONTRACT.qualityTarget}`, accent: T.accent, foot: `${fmtMoney(currentDollars)} secured`, pillColor: T.warn, pillBg: T.warnLight, pillText: `${currentScore >= CONTRACT.qualityTarget ? '+' : '−'}${+Math.abs(currentScore - CONTRACT.qualityTarget).toFixed(1)} vs target` },
           { label: 'EOY PROJECTION', big: `${runRateScore}`, sub: 'at current pace', accent: T.muted,
             foot: `${fmtMoney(runRateDollars)} expected`, pillColor: T.warn, pillBg: T.warnLight, pillText: `Misses target by ${CONTRACT.qualityTarget - runRateScore}` },
           { label: 'WITH PLAN ABOVE', big: `${currentScore + planScoreGain}`, sub: `+${planScoreGain} pts from ${selectedCount} actions`, accent: T.success,
-            foot: `+${fmtMoney(planUpside)} unlocked`, pillColor: T.success, pillBg: T.successLight, pillText: `Hits target` },
+            foot: `+${fmtMoney(planUpside)} unlocked`,
+            ...(currentScore + planScoreGain >= CONTRACT.qualityTarget
+              ? { pillColor: T.success, pillBg: T.successLight, pillText: 'Hits target' }
+              : { pillColor: T.warn, pillBg: T.warnLight, pillText: `Short of target by ${+(CONTRACT.qualityTarget - currentScore - planScoreGain).toFixed(1)}` }) },
           { label: 'CEILING ATTAINABLE', big: `${ceilingScore}`, sub: 'all gaps closed', accent: T.violet,
             foot: `${fmtMoney(ceilingDollars)} maximum`, pillColor: T.violet, pillBg: T.violetLight, pillText: `+${ceilingScore - currentScore} pts upside` },
         ].map((k, i) => (
@@ -353,7 +366,7 @@ function QualityForecastView() {
             </div>
           }
         />
-        <TrajectoryChart width={870} height={250} withPlan />
+        <TrajectoryChart width={870} height={250} withPlan runEnd={runRateScore} planEnd={currentScore + planScoreGain} />
         <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 8, paddingTop: 12, borderTop: `1px solid ${T.border}`, fontSize: 11, color: T.muted, flexWrap: 'wrap', gap: 8 }}>
           <span><b style={{ color: T.text }}>5 of 12</b> months elapsed</span>
           <span>Submission window opens <b style={{ color: T.text }}>Feb 14, 2026</b></span>
@@ -386,11 +399,12 @@ function QualityForecastView() {
           </div>
           <div>
             <div style={{ fontSize: 10, color: T.faint, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5 }}>Cost-of-action</div>
-            <div style={{ fontSize: 16, fontWeight: 700, color: T.text, marginTop: 4 }}>$48K</div>
+            <div style={{ fontSize: 16, fontWeight: 700, color: T.text, marginTop: 4 }}>{fmtMoney(PLAN_ACTION_COST)}</div>
           </div>
           <div>
             <div style={{ fontSize: 10, color: T.faint, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5 }}>Net ROI</div>
-            <div style={{ fontSize: 18, fontWeight: 800, color: T.success, marginTop: 4 }}>≈ 2.8×</div>
+            <div style={{ fontSize: 18, fontWeight: 800, color: T.success, marginTop: 4 }}>≈ {((planUpside - PLAN_ACTION_COST) / PLAN_ACTION_COST).toFixed(1)}×</div>
+            <div style={{ fontSize: 11, color: T.muted, marginTop: 1 }}>(incentive − cost) ÷ cost</div>
           </div>
 
           <button style={{ background: T.success, color: '#fff', border: 'none', borderRadius: 8, padding: '11px 18px', fontSize: 13, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' }}>Commit plan →</button>

@@ -9,10 +9,10 @@ const CONTRACT = {
   status: 'at_risk',
   period: 'CY2025',
   members: 5800,
-  qualityPool: 550000,        // 50% of $1.1M incentive pool
-  qualityEarnedToDate: 290000,
-  qualityTarget: 68,
-  qualityScore: 63,  // matches compositeScore(MEASURES,'actual') with current data
+  qualityPool: 715000,        // 65% of $1.1M incentive pool (quality & utilization combined)
+  qualityEarnedToDate: 178750, // 2 of 8 measures achieved × $715K
+  qualityTarget: 75,          // 6 of 8 measures achieved
+  qualityScore: 25,           // recomputed below from compositeScore(MEASURES,'actual')
   monthsElapsed: 5,           // Jan–May
   daysToClose: 218,           // until submission deadline
 };
@@ -23,7 +23,7 @@ const CONTRACT = {
 const MEASURES = [
   {
     id: 'm1', name: 'HbA1c Control (<8%)', category: 'Diabetes',
-    weight: 15, target: 68, actual: 62.7, runRate: 62.5, ceiling: 67.0,
+    weight: 12.5, target: 68, actual: 62.7, runRate: 62.5, ceiling: 69.0,
     benchmark: 69.0, denominator: 696, inverse: false,
     trend: [58.1, 60.4, 61.2, 62.0, 62.7],
     gaps: [
@@ -34,7 +34,7 @@ const MEASURES = [
   },
   {
     id: 'm2', name: 'Blood Pressure Control', category: 'Cardiovascular',
-    weight: 15, target: 75, actual: 63.7, runRate: 64.0, ceiling: 70.0,
+    weight: 12.5, target: 75, actual: 63.7, runRate: 64.0, ceiling: 76.0,
     benchmark: 74.1, denominator: 1740, inverse: false,
     trend: [61.6, 62.5, 61.6, 63.4, 63.7],
     gaps: [
@@ -45,7 +45,7 @@ const MEASURES = [
   },
   {
     id: 'm3', name: 'Breast Cancer Screening', category: 'Preventive',
-    weight: 10, target: 72, actual: 68.7, runRate: 69.0, ceiling: 73.0,
+    weight: 12.5, target: 72, actual: 68.7, runRate: 69.0, ceiling: 73.0,
     benchmark: 73.0, denominator: 812, inverse: false,
     trend: [59.8, 61.6, 65.1, 66.9, 68.7],
     gaps: [
@@ -56,7 +56,7 @@ const MEASURES = [
   },
   {
     id: 'm4', name: 'Colorectal Cancer Screening', category: 'Preventive',
-    weight: 10, target: 65, actual: 53.9, runRate: 54.0, ceiling: 60.0,
+    weight: 12.5, target: 65, actual: 53.9, runRate: 54.0, ceiling: 60.0,
     benchmark: 66.2, denominator: 1450, inverse: false,
     trend: [55.4, 54.6, 53.7, 54.6, 53.9],
     gaps: [
@@ -67,7 +67,7 @@ const MEASURES = [
   },
   {
     id: 'm5', name: 'Diabetes Eye Exam', category: 'Diabetes',
-    weight: 10, target: 70, actual: 65.1, runRate: 65.5, ceiling: 69.0,
+    weight: 12.5, target: 70, actual: 65.1, runRate: 65.5, ceiling: 69.0,
     benchmark: 68.1, denominator: 696, inverse: false,
     trend: [57.2, 59.8, 61.6, 63.4, 65.1],
     gaps: [
@@ -78,7 +78,7 @@ const MEASURES = [
   },
   {
     id: 'm6', name: 'Medication Adherence', category: 'Pharmacy',
-    weight: 15, target: 80, actual: 72.4, runRate: 73.0, ceiling: 78.0,
+    weight: 12.5, target: 80, actual: 72.4, runRate: 73.0, ceiling: 81.0,
     benchmark: 79.4, denominator: 1276, inverse: false,
     trend: [66.9, 68.6, 69.5, 70.4, 72.4],
     gaps: [
@@ -89,7 +89,7 @@ const MEASURES = [
   },
   {
     id: 'm7', name: '30-Day Readmission Rate', category: 'Utilization',
-    weight: 15, target: 12, actual: 11.8, runRate: 11.8, ceiling: 11.4,
+    weight: 12.5, target: 12, actual: 11.8, runRate: 11.8, ceiling: 11.4,
     benchmark: 13.1, denominator: 464, inverse: true,
     trend: [12.5, 12.1, 11.9, 11.8, 11.8],
     gaps: [
@@ -99,7 +99,7 @@ const MEASURES = [
   },
   {
     id: 'm8', name: 'ED Utilization (per 1K)', category: 'Utilization',
-    weight: 10, target: 180, actual: 144.3, runRate: 144.0, ceiling: 138.0,
+    weight: 12.5, target: 180, actual: 144.3, runRate: 144.0, ceiling: 138.0,
     benchmark: 188, denominator: 5800, inverse: true,
     trend: [174.2, 167.2, 159.3, 147.8, 144.3],
     gaps: [
@@ -137,29 +137,22 @@ const measureStatus = m => {
 };
 
 // Points contribution given an attainment level.
-// Linear ramp from "floor" to "target" — full weight at target. Tight band
-// (±15 pp for normal measures, ×1.5 for inverse) so an at-risk panel
-// computes a composite that matches the displayed CURRENT score.
+// Achieved / Not Achieved: a measure earns its full (equal) weight when it is
+// at or better than target, and nothing otherwise.
 const pointsAtLevel = (m, level) => {
-  const t = m.target;
-  const floor = m.inverse ? t * 1.5 : t - 15;
-  let frac;
-  if (m.inverse) {
-    if (level <= t) frac = 1;
-    else if (level >= floor) frac = 0;
-    else frac = (floor - level) / (floor - t);
-  } else {
-    if (level >= t) frac = 1;
-    else if (level <= floor) frac = 0;
-    else frac = (level - floor) / (t - floor);
-  }
-  return Math.max(0, Math.min(1, frac)) * m.weight;
+  const achieved = m.inverse ? level <= m.target : level >= m.target;
+  return achieved ? m.weight : 0;
 };
 
 const totalWeight = MEASURES.reduce((s, m) => s + m.weight, 0);
 
 const compositeScore = (measures, levelKey='actual') =>
-  Math.round(measures.reduce((s, m) => s + pointsAtLevel(m, m[levelKey]), 0) * 100 / totalWeight);
+  Math.round(measures.reduce((s, m) => s + pointsAtLevel(m, m[levelKey]), 0) * 1000 / totalWeight) / 10;
+
+CONTRACT.qualityScore = compositeScore(MEASURES, 'actual');
+// Same status rule as the portfolio: on track at target, at risk within one measure
+CONTRACT.status = CONTRACT.qualityScore >= CONTRACT.qualityTarget ? 'on_track'
+  : CONTRACT.qualityScore >= CONTRACT.qualityTarget - 100 / MEASURES.length ? 'at_risk' : 'below_target';
 
 const dollarsAt = (measures, levelKey='actual', pool=CONTRACT.qualityPool) =>
   measures.reduce((s, m) => s + pointsAtLevel(m, m[levelKey]) / totalWeight * pool, 0);

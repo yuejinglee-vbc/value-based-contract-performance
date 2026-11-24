@@ -57,7 +57,7 @@ const HS_STATUS = {
 const HS_STATUS_KEYS = ['open','open','open','chart','scheduled','queried'];
 
 window.getHccSuspectMembers = (c, hcc, limit=14, allSuspects=[]) => {
-  const tpl = HS_EVIDENCE[hcc.code] || HS_FALLBACK;
+  const tpl = HS_EVIDENCE[hcc.evKey || hcc.code] || HS_FALLBACK;
   const others = allSuspects.filter(s => s.code !== hcc.code);
   const capRev = hcc.revPerMember;
   const n = Math.min(limit, hcc.suspectMembers);

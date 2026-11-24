@@ -173,15 +173,19 @@ const CONTRACTS = [
   { id:'c6', name:'Aetna Performance Network Commercial',  payer:'Aetna / CVS Health',  type:'Commercial', status:'on_track',     period:'CY2025', periodEnd:'Dec 2025', members:7250,  incentivePool:1450000, incentiveEarned:1131000, qualityScore:73, qualityTarget:70, costPMPM:852,  costTarget:881,  alerts:1 },
 ];
 
+// `ceilRatio` sets each measure's ceiling (best plausible attainment this
+// period) as a multiple of its current value. The ratios come from the Anthem
+// ceilings on the Quality Forecast, so every contract gets the same relative
+// room above today's value.
 const BASE_MEASURES = [
-  { id:'m1', name:'HbA1c Control (<8%)',         category:'Diabetes',       weight:15, target:68,  actual:71.2, benchmark:69.0, inverse:false, trend:[62,64,67,69,71] },
-  { id:'m2', name:'Blood Pressure Control',       category:'Cardiovascular', weight:15, target:75,  actual:72.4, benchmark:74.1, inverse:false, trend:[70,71,70,72,72] },
-  { id:'m3', name:'Breast Cancer Screening',      category:'Preventive',     weight:10, target:72,  actual:78.1, benchmark:73.0, inverse:false, trend:[68,70,74,76,78] },
-  { id:'m4', name:'Colorectal Cancer Screening',  category:'Preventive',     weight:10, target:65,  actual:61.3, benchmark:66.2, inverse:false, trend:[63,62,61,62,61] },
-  { id:'m5', name:'Diabetes Eye Exam',            category:'Diabetes',       weight:10, target:70,  actual:74.0, benchmark:68.1, inverse:false, trend:[65,68,70,72,74] },
-  { id:'m6', name:'Medication Adherence',         category:'Pharmacy',       weight:15, target:80,  actual:82.3, benchmark:79.4, inverse:false, trend:[76,78,79,80,82] },
-  { id:'m7', name:'30-Day Readmission Rate',      category:'Utilization',    weight:15, target:12,  actual:13.4, benchmark:13.1, inverse:true,  trend:[14.2,13.8,13.5,13.4,13.4] },
-  { id:'m8', name:'ED Utilization (per 1K)',      category:'Utilization',    weight:10, target:180, actual:164,  benchmark:188,  inverse:true,  trend:[198,190,181,168,164] },
+  { id:'m1', name:'HbA1c Control (<8%)',         category:'Diabetes',       weight:12.5, target:68,  actual:71.2, benchmark:69.0, inverse:false, ceilRatio:69/62.7,   trend:[62,64,67,69,71] },
+  { id:'m2', name:'Blood Pressure Control',       category:'Cardiovascular', weight:12.5, target:75,  actual:72.4, benchmark:74.1, inverse:false, ceilRatio:76/63.7,   trend:[70,71,70,72,72] },
+  { id:'m3', name:'Breast Cancer Screening',      category:'Preventive',     weight:12.5, target:72,  actual:78.1, benchmark:73.0, inverse:false, ceilRatio:73/68.7,   trend:[68,70,74,76,78] },
+  { id:'m4', name:'Colorectal Cancer Screening',  category:'Preventive',     weight:12.5, target:65,  actual:61.3, benchmark:66.2, inverse:false, ceilRatio:60/53.9,   trend:[63,62,61,62,61] },
+  { id:'m5', name:'Diabetes Eye Exam',            category:'Diabetes',       weight:12.5, target:70,  actual:74.0, benchmark:68.1, inverse:false, ceilRatio:69/65.1,   trend:[65,68,70,72,74] },
+  { id:'m6', name:'Medication Adherence',         category:'Pharmacy',       weight:12.5, target:80,  actual:82.3, benchmark:79.4, inverse:false, ceilRatio:81/72.4,   trend:[76,78,79,80,82] },
+  { id:'m7', name:'30-Day Readmission Rate',      category:'Utilization',    weight:12.5, target:12,  actual:13.4, benchmark:13.1, inverse:true,  ceilRatio:11.4/11.8, trend:[14.2,13.8,13.5,13.4,13.4] },
+  { id:'m8', name:'ED Utilization (per 1K)',      category:'Utilization',    weight:12.5, target:180, actual:164,  benchmark:188,  inverse:true,  ceilRatio:138/144.3, trend:[198,190,181,168,164] },
 ];
 
 const MULTIPLIERS = { c1:1.0, c2:0.88, c3:1.02, c4:0.75, c5:0.92, c6:1.03 };
@@ -210,17 +214,60 @@ const RISK_PROFILE = {
   c6: { rafCur:1.094, rafPrior:1.108, capPMPM:148 },
 };
 
-// CMS-HCC v24 reference set used to surface suspect (un-coded) conditions.
-const HCC_LIBRARY = [
-  { code:'HCC 18',  name:'Diabetes w/ Chronic Complications', baseRaf:0.302, evidence:'Lab + Rx',     basis:'A1c >9% on insulin without complication code',          prevalence:0.082, captureRate:0.55 },
-  { code:'HCC 85',  name:'Congestive Heart Failure',          baseRaf:0.331, evidence:'Echo + Rx',    basis:'EF <40% on echo or loop diuretic + ACE/ARB, no CHF dx', prevalence:0.061, captureRate:0.48 },
-  { code:'HCC 111', name:'Chronic Obstructive Pulmonary Dis.',baseRaf:0.328, evidence:'Spiro + Rx',   basis:'FEV1/FVC <0.7 or LABA/LAMA combo, no COPD dx',          prevalence:0.074, captureRate:0.52 },
-  { code:'HCC 108', name:'Vascular Disease',                  baseRaf:0.288, evidence:'Imaging + Rx', basis:'Carotid stenosis on US or statin + clopidogrel',        prevalence:0.108, captureRate:0.60 },
-  { code:'HCC 138', name:'Chronic Kidney Disease, Stage 4',   baseRaf:0.421, evidence:'Labs (eGFR)',  basis:'eGFR 15–29 sustained ≥90 days',                         prevalence:0.032, captureRate:0.42 },
-  { code:'HCC 22',  name:'Morbid Obesity',                    baseRaf:0.250, evidence:'BMI',          basis:'BMI ≥40 documented without obesity dx',                 prevalence:0.094, captureRate:0.51 },
-  { code:'HCC 96',  name:'Specified Heart Arrhythmias',       baseRaf:0.268, evidence:'EKG + Rx',     basis:'AFib EKG + anticoagulant without dx code',              prevalence:0.048, captureRate:0.44 },
-  { code:'HCC 59',  name:'Major Depressive Disorder',         baseRaf:0.309, evidence:'Rx + PHQ-9',   basis:'PHQ-9 ≥15 or SSRI ≥90 days without F32/F33',            prevalence:0.067, captureRate:0.40 },
-];
+// Risk model by contract type: Medicare contracts (MSSP, BPCI) use CMS-HCC;
+// commercial contracts use the ACA HHS-HCC model.
+const hccModelLabel = c => ['MSSP','BPCI'].includes(c.type) ? 'CMS-HCC 2025 blend (67% V28 / 33% V24)' : 'HHS-HCC v08';
+
+// Suspect-condition reference set. `evKey` links each condition to its
+// clinical-evidence template. Evidence, prevalence and capture assumptions are
+// shared by the Medicare and commercial versions below.
+const HCC_CONDITIONS = [
+  { evKey:'HCC 18',  evidence:'Lab + Rx',     basis:'A1c >9% on insulin without complication code',          prevalence:0.082, captureRate:0.55 },
+  { evKey:'HCC 85',  evidence:'Echo + Rx',    basis:'EF <40% on echo or loop diuretic + ACE/ARB, no CHF dx', prevalence:0.061, captureRate:0.48 },
+  { evKey:'HCC 111', evidence:'Spiro + Rx',   basis:'FEV1/FVC <0.7 or LABA/LAMA combo, no COPD dx',          prevalence:0.074, captureRate:0.52 },
+  { evKey:'HCC 108', evidence:'Imaging + Rx', basis:'Carotid stenosis on US or statin + clopidogrel',        prevalence:0.108, captureRate:0.60 },
+  { evKey:'HCC 138', evidence:'Labs (eGFR)',  basis:'eGFR 15–29 sustained ≥90 days',                         prevalence:0.032, captureRate:0.42 },
+  { evKey:'HCC 22',  evidence:'BMI',          basis:'BMI ≥40 documented without obesity dx',                 prevalence:0.094, captureRate:0.51 },
+  { evKey:'HCC 96',  evidence:'EKG + Rx',     basis:'AFib EKG + anticoagulant without dx code',              prevalence:0.048, captureRate:0.44 },
+  { evKey:'HCC 59',  evidence:'Rx + PHQ-9',   basis:'PHQ-9 ≥15 or SSRI ≥90 days without F32/F33',            prevalence:0.067, captureRate:0.40 },
+].map((h, idx) => ({ ...h, idx }));
+
+// Medicare (CMS-HCC), payment year 2025: risk scores blend 67% of the 2024
+// model (V28) with 33% of the 2020 model (V24). Factors are Community,
+// NonDual, Aged. `baseRaf` = 0.67 × V28 + 0.33 × V24 (normalization ignored).
+// V28 has no payment HCC for uncomplicated vascular disease, so that suspect
+// carries only its V24 share.
+const CMS_MAP = {
+  'HCC 18':  { code:'HCC 37',      v24:'HCC 18',  name:'Diabetes with Chronic Complications',               v28Raf:0.166, v24Raf:0.302 },
+  'HCC 85':  { code:'HCC 226',     v24:'HCC 85',  name:'Heart Failure, Except End-Stage and Acute',         v28Raf:0.360, v24Raf:0.331 },
+  'HCC 111': { code:'HCC 280',     v24:'HCC 111', name:'COPD, Interstitial and Other Chronic Lung Disorders', v28Raf:0.319, v24Raf:0.335 },
+  'HCC 108': { code:'V24 HCC 108', v24:'HCC 108', name:'Vascular Disease (no V28 payment HCC)',            v28Raf:0,     v24Raf:0.288 },
+  'HCC 138': { code:'HCC 327',     v24:'HCC 137', name:'Chronic Kidney Disease, Severe (Stage 4)',          v28Raf:0.514, v24Raf:0.289 },
+  'HCC 22':  { code:'HCC 48',      v24:'HCC 22',  name:'Morbid Obesity',                                    v28Raf:0.186, v24Raf:0.250 },
+  'HCC 96':  { code:'HCC 238',     v24:'HCC 96',  name:'Specified Heart Arrhythmias',                       v28Raf:0.299, v24Raf:0.268 },
+  'HCC 59':  { code:'HCC 155',     v24:'HCC 59',  name:'Major Depression, Moderate or Severe, without Psychosis', v28Raf:0.299, v24Raf:0.309 },
+};
+const HCC_LIBRARY = HCC_CONDITIONS.map(h => {
+  const m = CMS_MAP[h.evKey];
+  return { ...h, ...m, baseRaf: +(0.67 * m.v28Raf + 0.33 * m.v24Raf).toFixed(3) };
+});
+
+// HHS-HCC (ACA commercial) equivalents. Codes, labels and adult silver-level
+// coefficients from CMS "2026 Benefit Year Final HHS Risk Adjustment Model
+// Coefficients", Table 1 (published Jan 13, 2025). The HHS model has no HCC for
+// uncomplicated vascular disease or morbid obesity, so those two suspects do not
+// apply to commercial contracts. Evidence, prevalence and capture assumptions
+// carry over from the matching CMS-HCC row.
+const HHS_MAP = {
+  'HCC 18':  { code:'HHS-HCC 20',  name:'Diabetes with Chronic Complications',                 baseRaf:0.142 },
+  'HCC 85':  { code:'HHS-HCC 130', name:'Heart Failure',                                       baseRaf:1.647 },
+  'HCC 111': { code:'HHS-HCC 160', name:'COPD, Including Bronchiectasis',                      baseRaf:0.470 },
+  'HCC 138': { code:'HHS-HCC 188', name:'Chronic Kidney Disease, Severe (Stage 4)',            baseRaf:0.645 },
+  'HCC 96':  { code:'HHS-HCC 142', name:'Specified Heart Arrhythmias',                         baseRaf:1.660 },
+  'HCC 59':  { code:'HHS-HCC 88',  name:'Major Depressive Disorder, Severe, and Bipolar Disorders', baseRaf:0.742 },
+};
+const HHS_HCC_LIBRARY = HCC_CONDITIONS.filter(h => HHS_MAP[h.evKey]).map(h => ({ ...h, ...HHS_MAP[h.evKey] }));
+const hccLibraryFor = c => ['MSSP','BPCI'].includes(c.type) ? HCC_LIBRARY : HHS_HCC_LIBRARY;
 
 const getExecSummary = (c) => {
   const pr = PRIOR[c.id];
@@ -259,7 +306,8 @@ const getExecSummary = (c) => {
 
 const getMeasures = (id) => BASE_MEASURES.map(m => {
   const k = MULTIPLIERS[id] || 1;
-  return { ...m, actual: parseFloat((m.actual * k).toFixed(1)), trend: m.trend.map(v => parseFloat((v*k).toFixed(1))) };
+  const actual = parseFloat((m.actual * k).toFixed(1));
+  return { ...m, actual, ceiling: parseFloat((actual * m.ceilRatio).toFixed(1)), trend: m.trend.map(v => parseFloat((v*k).toFixed(1))) };
 });
 
 // ─── PORTFOLIO OPPORTUNITIES (cross-contract aggregation) ─────────
@@ -305,12 +353,16 @@ const calcInterventionImpact = (intv, c) => {
     const m = measures.find(x => x.id === intv.qualityMeasureId);
     if (m) {
       const gap = m.inverse ? Math.max(0, m.actual - m.target) : Math.max(0, m.target - m.actual);
-      if (gap > 0) {
-        // Closing gap takes measure from below_target to on_track → gain m.weight/totalWt × quality pool (50% of incentive)
-        const qualityPool = c.incentivePool * 0.5;
+      const reachable = m.inverse ? m.ceiling <= m.target : m.ceiling >= m.target;
+      if (gap > 0 && reachable) {
+        // Closing gap flips the measure to Achieved → gain m.weight/totalWt × quality & utilization pool (65% of incentive)
+        const qualityPool = c.incentivePool * QU_SHARE;
         qualityDollars = m.weight / totalWt * qualityPool;
         membersImpacted += Math.round(c.members * Math.min(0.4, gap / 100));
-        qualityGap = { current: m.actual, target: m.target, name: m.name, gap: gap.toFixed(1) };
+        qualityGap = { current: m.actual, target: m.target, ceiling: m.ceiling, name: m.name, gap: gap.toFixed(1) };
+      } else if (gap > 0) {
+        // Ceiling falls short of target → cannot be Achieved this period → $0
+        qualityGap = { current: m.actual, target: m.target, ceiling: m.ceiling, name: m.name, gap: gap.toFixed(1), unreachable: true };
       }
     }
   }
@@ -340,9 +392,9 @@ const calcInterventionImpact = (intv, c) => {
 // Compute opportunities across all contracts for all interventions
 const getPortfolioOpportunities = () => {
   return PORTFOLIO_INTERVENTIONS.map(intv => {
-    const perContract = CONTRACTS
-      .map(c => calcInterventionImpact(intv, c))
-      .filter(x => x.totalDollars > 1000);   // suppress noise
+    const impacts = CONTRACTS.map(c => calcInterventionImpact(intv, c));
+    const perContract = impacts.filter(x => x.totalDollars > 1000);   // suppress noise
+    const unreachable = impacts.filter(x => x.qualityGap?.unreachable);
     const totalDollars = perContract.reduce((s,x) => s + x.totalDollars, 0);
     const totalMembers = perContract.reduce((s,x) => s + x.membersImpacted, 0);
     const qualityTotal = perContract.reduce((s,x) => s + x.qualityDollars, 0);
@@ -350,6 +402,7 @@ const getPortfolioOpportunities = () => {
     return {
       ...intv,
       perContract,
+      unreachable,
       totalDollars,
       totalMembers,
       qualityTotal,
@@ -357,7 +410,7 @@ const getPortfolioOpportunities = () => {
       contractCount: perContract.length,
       isQuickWin: intv.effort === 'Low' && intv.timeline === '1-3 mo' && totalDollars > 0,
     };
-  }).filter(o => o.contractCount > 0)
+  }).filter(o => o.contractCount > 0 || o.unreachable.length > 0)
     .sort((a,b) => b.totalDollars - a.totalDollars);
 };
 
@@ -449,9 +502,8 @@ const getFinancials = (c) => ({
     { name:'Post-Acute Care',  target: Math.round(c.costTarget*0.058), actual: Math.round(c.costPMPM*0.067) },
   ],
   incentiveRows: [
-    { label:'Quality Score Component', pool: c.incentivePool*0.50, earned: c.incentiveEarned*0.54 },
-    { label:'Cost Savings Shared',     pool: c.incentivePool*0.35, earned: c.incentiveEarned*0.38 },
-    { label:'Utilization Bonus',       pool: c.incentivePool*0.15, earned: c.incentiveEarned*0.08 },
+    { label:'Quality & Utilization Measures', pool: c.incentivePool*QU_SHARE,   earned: c.qualityEarned },
+    { label:'Cost Savings Shared',            pool: c.incentivePool*COST_SHARE, earned: c.costEarned },
   ],
 });
 
@@ -463,8 +515,75 @@ const getMeasureStatus = m => {
   const d = m.inverse ? m.target - m.actual : m.actual - m.target;
   return d >= 0 ? 'on_track' : d >= -3 ? 'at_risk' : 'below_target';
 };
+const fmtM2 = v => v >= 1e6 ? `$${(v/1e6).toFixed(2)}M` : `$${(v/1e3).toFixed(0)}K`;
+
+// ─── INCENTIVE RULE ───────────────────────────────────────────────
+// Quality and utilization measures share one pool (65% of the incentive);
+// cost savings is the other 35%. Every measure carries equal weight and is
+// scored Achieved (1) if at/better than target, else Not Achieved (0).
+const QU_SHARE = 0.65, COST_SHARE = 0.35;
+const QUALITY_SCORE_TARGET = 75; // 6 of 8 measures achieved
+CONTRACTS.forEach(c => {
+  const ms = getMeasures(c.id);
+  const achieved = ms.filter(m => getMeasureStatus(m) === 'on_track').length;
+  c.measuresAchieved = achieved;
+  c.qualityScore  = Math.round(achieved / ms.length * 1000) / 10;
+  c.qualityTarget = QUALITY_SCORE_TARGET;
+  c.costEarned    = c.incentiveEarned * 0.38; // cost-savings share of reported YTD earnings (unchanged)
+  c.qualityEarned = c.incentivePool * QU_SHARE * achieved / ms.length;
+  c.incentiveEarned = c.qualityEarned + c.costEarned;
+
+  // Overall status = the worse of quality and cost.
+  // Quality: on track at/above the score target; at risk within one measure
+  // (12.5 pts) of it; below target otherwise.
+  // Cost: on track at/under the PMPM target; at risk up to 3% over; below target beyond.
+  const RANK = { on_track:0, at_risk:1, below_target:2 };
+  const oneMeasure = 100 / ms.length;
+  c.qualityStatus = c.qualityScore >= c.qualityTarget ? 'on_track'
+           : c.qualityScore >= c.qualityTarget - oneMeasure ? 'at_risk' : 'below_target';
+  const costOver = (c.costPMPM - c.costTarget) / c.costTarget * 100;
+  c.costStatus = costOver <= 0 ? 'on_track' : costOver <= 3 ? 'at_risk' : 'below_target';
+  c.status = RANK[c.costStatus] > RANK[c.qualityStatus] ? c.costStatus : c.qualityStatus;
+
+  // Alerts, derived from the same measures and targets
+  const fmtGap = m => {
+    const g = Math.abs(m.actual - m.target);
+    return m.name.includes('per 1K') ? `${g.toFixed(1)} per 1K` : `${g.toFixed(1)} pts`;
+  };
+  const list = [];
+  if (c.qualityStatus !== 'on_track') list.push({ sev: c.qualityStatus === 'below_target' ? 'critical' : 'warning',
+    msg: 'Quality score below target',
+    short: `Score ${c.qualityScore} vs ${c.qualityTarget} target · ${achieved} of ${ms.length} measures achieved` });
+  const far = ms.filter(m => getMeasureStatus(m) === 'below_target');
+  if (far.length) list.push({ sev:'critical', msg:'Measures not achieved',
+    short: `${far.length} measure${far.length>1?'s':''} more than 3 pts from target: ${far.map(m => m.name).join(', ')}` });
+  ms.filter(m => getMeasureStatus(m) === 'at_risk').forEach(m => list.push({ sev:'warning',
+    msg:'Measure close to target', short:`${m.name} ${fmtGap(m)} ${m.inverse ? 'above' : 'below'} target` }));
+  if (c.costStatus !== 'on_track') list.push({ sev: c.costStatus === 'below_target' ? 'critical' : 'warning',
+    msg:'Cost PMPM exceeds target',
+    short: `Cost $${c.costPMPM}/pm vs $${c.costTarget} target (+${costOver.toFixed(1)}%)` });
+  if (c.alerts >= 2) list.push({ sev:'warning', msg:'Data submission deadline approaching',
+    short: 'Q1 quality data submission due in 14 days' });
+  c.alertList = list;
+  c.alerts = list.length;
+});
 
 // ─── ATOMS ────────────────────────────────────────────────────────
+// Small "i" button that shows an explanatory tooltip on hover or keyboard focus.
+const InfoTip = ({ text, label = 'More info' }) => {
+  const [open, setOpen] = useState(false);
+  return (
+    <span style={{ position:'relative', display:'inline-flex', marginLeft:4, verticalAlign:'middle' }}>
+      <button type="button" aria-label={label} aria-describedby={open ? 'infotip' : undefined}
+        onMouseEnter={()=>setOpen(true)} onMouseLeave={()=>setOpen(false)}
+        onFocus={()=>setOpen(true)} onBlur={()=>setOpen(false)}
+        onClick={e=>{ e.stopPropagation(); setOpen(o=>!o); }}
+        style={{ width:14, height:14, borderRadius:'50%', border:'1px solid #64748b', background:'#fff', color:'#475569', fontSize:9, fontWeight:700, lineHeight:'12px', padding:0, cursor:'help', fontFamily:'inherit', textTransform:'none' }}>i</button>
+      {open && <span id="infotip" role="tooltip" style={{ position:'absolute', top:20, left:-8, zIndex:50, width:240, background:'#0f172a', color:'#fff', fontSize:11, fontWeight:500, lineHeight:1.45, letterSpacing:0, textTransform:'none', padding:'8px 10px', borderRadius:6, boxShadow:'0 4px 12px rgba(0,0,0,0.18)', whiteSpace:'normal' }}>{text}</span>}
+    </span>
+  );
+};
+const OPP_TYPE_TIP = 'Classifies the performance domains an intervention can influence, independent of its current incremental financial opportunity.';
 const Badge = ({ status, sm }) => {
   const s = STATUS[status];
   return <span style={{ display:'inline-flex', alignItems:'center', gap:5, background:s.bg, color:s.text, padding: sm?'2px 8px':'3px 10px', borderRadius:20, fontSize:sm?11:12, fontWeight:600, whiteSpace:'nowrap' }}>
@@ -553,10 +672,12 @@ const TopBar = ({ crumbs, totalAlerts, T }) => (
     <div style={{ flex:1, display:'flex', alignItems:'center', gap:5 }}>
       {crumbs.map((b,i) => <React.Fragment key={i}>
         {i>0 && <span style={{ color:'#cbd5e1', fontSize:13 }}>›</span>}
-        <span onClick={b.onClick} style={{ fontSize:13, color:b.onClick?T.accent:'#0f172a', fontWeight:i===crumbs.length-1?600:400, cursor:b.onClick?'pointer':'default' }}>{b.label}</span>
+        {b.onClick
+          ? <button type="button" onClick={b.onClick} style={{ background:'none', border:'none', padding:0, fontFamily:'inherit', fontSize:13, color:T.accent, fontWeight:i===crumbs.length-1?600:400, cursor:'pointer' }}>{b.label}</button>
+          : <span style={{ fontSize:13, color:'#0f172a', fontWeight:i===crumbs.length-1?600:400 }}>{b.label}</span>}
       </React.Fragment>)}
     </div>
-    <div style={{ fontSize:12, color:T.faint }}>PY2025 · Q1</div>
+    <div style={{ fontSize:12, color:T.faint }} title="All contracts run Jan–Dec 2025 (PY2025 for Medicare, CY2025 for commercial)">2025 performance period · data through May 2025 (Q2)</div>
     <div style={{ display:'flex', alignItems:'center', gap:6, background:totalAlerts>0?'#fef2f2':'#f8fafc', border:`1px solid ${totalAlerts>0?'#fecaca':T.border}`, borderRadius:7, padding:'5px 12px', fontSize:12, fontWeight:600, color:totalAlerts>0?'#ef4444':T.muted }}>
       ⚡ {totalAlerts} alerts
     </div>
@@ -605,7 +726,7 @@ const ContractList = ({ onSelect, onCompare, T }) => {
     {/* Summary KPIs */}
     <div style={{ display:'flex', gap:12, marginBottom:20 }}>
       <KPI label="Total Incentive Pool" value={fmtM(total.pool)} sub={`Across ${CONTRACTS.length} active contracts`} accent={T.accent} T={T} />
-      <KPI label="Earned YTD" value={fmtM(total.earned)} sub={`${fmtPct(total.earned/total.pool*100)} of pool`} accent="#10b981" T={T} />
+      <KPI label="Earned YTD (est.)" value={fmtM(total.earned)} sub={`${fmtPct(total.earned/total.pool*100)} of pool`} accent="#10b981" T={T} />
       <KPI label="Attributed Lives" value={fmtN(total.members)} sub="All contracts combined" accent="#f59e0b" T={T} />
       <KPI label="Active Alerts" value={total.alerts} sub="Require attention" accent="#ef4444" T={T} />
     </div>
@@ -665,7 +786,7 @@ const ContractList = ({ onSelect, onCompare, T }) => {
         <div style={{ fontSize:10, fontWeight:700, color:T.faint, textTransform:'uppercase', letterSpacing:0.6 }}>
           {selected.length > 0 && <span style={{ color:T.accent }}>{selected.length}/4</span>}
         </div>
-        {['Contract / Payer','Type','Status','Attributed Lives','Pool','Earned YTD',''].map((h,i)=>
+        {['Contract / Payer','Type','Status','Attributed Lives','Pool','Earned YTD (est.)',''].map((h,i)=>
           <div key={i} style={{ fontSize:10, fontWeight:700, color:T.faint, textTransform:'uppercase', letterSpacing:0.6 }}>{h}</div>)}
       </div>
       {list.map((c,i) => {
@@ -765,7 +886,7 @@ const ExecSummary = ({ c, onNav, T }) => {
             </div>
             {/* Earned */}
             <div style={{ flex:1, background:T.bg, borderRadius:9, padding:'12px 14px' }}>
-              <div style={{ fontSize:10, color:T.faint, fontWeight:600, textTransform:'uppercase', letterSpacing:0.5, marginBottom:4 }}>Earned YTD</div>
+              <div style={{ fontSize:10, color:T.faint, fontWeight:600, textTransform:'uppercase', letterSpacing:0.5, marginBottom:4 }}>Earned YTD (est.)</div>
               <div style={{ fontSize:20, fontWeight:700, color: earnedDiff>=0?'#059669':'#dc2626' }}>{fmtM(s.earnedCur)}</div>
               <div style={{ fontSize:11, color:T.faint, marginTop:2 }}>Prior: {fmtM(s.earnedPrev)}</div>
               <div style={{ marginTop:5 }}><DeltaChip value={earnedDiff} fav={earnedDiff>=0} fmt={v=>`$${(v/1000).toFixed(0)}K`} /></div>
@@ -854,7 +975,7 @@ const ContractDashboard = ({ c, onNav, onCompare, T }) => {
   const measures = getMeasures(c.id);
   const s = getExecSummary(c);
   const earnedPct = c.incentiveEarned / c.incentivePool * 100;
-  const QUALITY_WEIGHT = 0.5; // quality component = 50% of pool
+  const QUALITY_WEIGHT = QU_SHARE; // quality & utilization component = 65% of pool
 
   // Member panel
   const memDelta   = s.membersNow - s.membersPrev;
@@ -927,7 +1048,7 @@ const ContractDashboard = ({ c, onNav, onCompare, T }) => {
     <div style={{ background:`linear-gradient(135deg, ${T.sidebar} 0%, ${T.accentDark} 100%)`, borderRadius:14, padding:'22px 26px', marginBottom:16, color:'#fff', boxShadow:'0 4px 16px rgba(0,0,0,0.12)' }}>
       <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', gap:24 }}>
         <div style={{ flex:1, minWidth:0 }}>
-          <div style={{ fontSize:11, color:'rgba(255,255,255,0.7)', fontWeight:600, textTransform:'uppercase', letterSpacing:0.7, marginBottom:8 }}>Incentive Earned to Date</div>
+          <div style={{ fontSize:11, color:'rgba(255,255,255,0.7)', fontWeight:600, textTransform:'uppercase', letterSpacing:0.7, marginBottom:8 }}>Incentive Earned to Date · Provisional estimate</div>
           <div style={{ display:'flex', alignItems:'baseline', gap:14, marginBottom:14 }}>
             <div style={{ fontSize:38, fontWeight:700, lineHeight:1 }}>{fmtM(c.incentiveEarned)}</div>
             <div style={{ fontSize:15, color:'rgba(255,255,255,0.7)' }}>of {fmtM(c.incentivePool)} pool</div>
@@ -939,6 +1060,7 @@ const ContractDashboard = ({ c, onNav, onCompare, T }) => {
             <span style={{ fontWeight:600, color:'#fff' }}>{fmtPct(earnedPct)} of pool earned</span>
             <span>{fmtM(c.incentivePool - c.incentiveEarned)} remaining at stake</span>
           </div>
+          <div style={{ fontSize:11, color:'rgba(255,255,255,0.75)', marginTop:6 }}>Accrued from current measure performance and cost trend. Not a firm amount: the final incentive is set at year-end reconciliation and may change.</div>
         </div>
         <div style={{ width:1, alignSelf:'stretch', background:'rgba(255,255,255,0.18)' }} />
         <div style={{ width:200, flexShrink:0 }}>
@@ -964,10 +1086,10 @@ const ContractDashboard = ({ c, onNav, onCompare, T }) => {
       const fin = getFinancials(c);
       return <div style={{ background:T.cardBg, borderRadius:12, padding:'18px 22px', marginBottom:14, boxShadow:'0 1px 4px rgba(0,0,0,0.07)' }}>
         <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:14 }}>
-          <div style={{ fontSize:14, fontWeight:700, color:T.text }}>Incentive Earned Breakdown</div>
+          <div style={{ fontSize:14, fontWeight:700, color:T.text }}>Incentive Earned Breakdown <span style={{ fontSize:11, fontWeight:600, color:T.muted }}>· provisional, subject to year-end reconciliation</span></div>
           <div style={{ fontSize:11, color:T.muted }}>{fmtM(c.incentiveEarned)} of {fmtM(c.incentivePool)} pool · {fmtPct(c.incentiveEarned/c.incentivePool*100)}</div>
         </div>
-        <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:14, marginBottom:14 }}>
+        <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:14, marginBottom:14 }}>
           {fin.incentiveRows.map(row => (
             <div key={row.label} style={{ background:T.bg, borderRadius:8, padding:'12px 14px' }}>
               <div style={{ fontSize:11, color:T.muted, fontWeight:600, marginBottom:6 }}>{row.label}</div>
@@ -1061,9 +1183,9 @@ const ContractDashboard = ({ c, onNav, onCompare, T }) => {
       {card('Quality Score', { label:'Measures', onClick:()=>onNav('measure') }, <>
         <div style={{ display:'flex', alignItems:'baseline', gap:8, marginBottom:4 }}>
           <div style={{ fontSize:26, fontWeight:700, color:T.text }}>{fmtPct(qualityPctEarned)}</div>
-          <div style={{ fontSize:13, color:T.muted }}>of quality pool earned</div>
+          <div style={{ fontSize:13, color:T.muted }}>of quality & utilization pool earned</div>
         </div>
-        <div style={{ fontSize:11, color:T.faint, marginBottom:12 }}>{fmtM(onTrackEarned)} secured of {fmtM(qualityPool)} quality component</div>
+        <div style={{ fontSize:11, color:T.faint, marginBottom:12 }}>{fmtM(onTrackEarned)} secured of {fmtM(qualityPool)} quality & utilization component · {buckets.on_track.length} of {measures.length} measures achieved</div>
         {/* Stacked bar */}
         <div style={{ display:'flex', height:10, borderRadius:5, overflow:'hidden', marginBottom:6, background:'#e2e8f0' }}>
           <div className="bar-fill" style={{ width:`${wtPct(buckets.on_track)*100}%`, background:'#10b981' }} title="On Track" />
@@ -1081,7 +1203,7 @@ const ContractDashboard = ({ c, onNav, onCompare, T }) => {
               <div style={{ width:24, height:24, borderRadius:'50%', background:'#fff', display:'flex', alignItems:'center', justifyContent:'center', fontSize:12, fontWeight:700, color:st.text, flexShrink:0 }}>{b.arr.length}</div>
               <div style={{ flex:1, minWidth:0 }}>
                 <div style={{ fontSize:11, fontWeight:600, color:st.text }}>{b.label}</div>
-                <div style={{ fontSize:10, color:st.text, opacity:0.75 }}>{(wtPct(b.arr)*100).toFixed(0)}% of pool · {fmtM(b.amt)} {b.sub}</div>
+                <div style={{ fontSize:10, color:st.text, opacity:0.75 }}>{+(wtPct(b.arr)*100).toFixed(1)}% of pool · {fmtM(b.amt)} {b.sub}</div>
               </div>
             </div>;
           })}
@@ -1104,7 +1226,7 @@ const ContractDashboard = ({ c, onNav, onCompare, T }) => {
         <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-end', marginBottom:14 }}>
           <div>
             <div style={{ fontSize:14, fontWeight:700, color:T.text }}>Risk Adjustment &amp; Coding</div>
-            <div style={{ fontSize:12, color:T.muted, marginTop:2 }}>CMS-HCC v24 model · panel-average RAF and open coding gaps.</div>
+            <div style={{ fontSize:12, color:T.muted, marginTop:2 }}>{hccModelLabel(c)} model · panel-average RAF and open coding gaps.</div>
           </div>
           <button className="btn-base" onClick={()=>onNav('risk')} style={{ background:T.accentLight, color:T.accentText, border:'none', borderRadius:7, padding:'7px 14px', fontSize:12, fontWeight:600 }}>View detail →</button>
         </div>
@@ -1152,10 +1274,9 @@ const ContractDashboard = ({ c, onNav, onCompare, T }) => {
     {c.alerts > 0 && <div style={{ background:'#fffbeb', borderRadius:10, padding:'12px 16px', border:'1px solid #fde68a' }}>
       <div style={{ fontSize:12, fontWeight:700, color:'#92400e', marginBottom:8 }}>⚡ {c.alerts} Active Alerts</div>
       <div style={{ display:'flex', gap:6, flexWrap:'wrap' }}>
-        {c.alerts>=1 && <span style={{ background:'#fff', border:'1px solid #fde68a', borderRadius:6, padding:'4px 10px', fontSize:11, color:'#92400e' }}>Blood Pressure Control 2.6 pts below threshold</span>}
-        {c.alerts>=2 && <span style={{ background:'#fff', border:'1px solid #fde68a', borderRadius:6, padding:'4px 10px', fontSize:11, color:'#92400e' }}>Q1 quality data submission due in 14 days</span>}
-        {c.alerts>=4 && <span style={{ background:'#fff', border:'1px solid #fecaca', borderRadius:6, padding:'4px 10px', fontSize:11, color:'#991b1b' }}>Readmission rate above target</span>}
-        {c.alerts>=6 && <span style={{ background:'#fff', border:'1px solid #fecaca', borderRadius:6, padding:'4px 10px', fontSize:11, color:'#991b1b' }}>Cost PMPM exceeds target</span>}
+        {c.alertList.map((a, i) => (
+          <span key={i} style={{ background:'#fff', border:`1px solid ${a.sev==='critical'?'#fecaca':'#fde68a'}`, borderRadius:6, padding:'4px 10px', fontSize:11, color: a.sev==='critical'?'#991b1b':'#92400e' }}>{a.short}</span>
+        ))}
       </div>
     </div>}
   </div>;
@@ -1188,18 +1309,17 @@ const MeasureDrilldown = ({ c, T }) => {
   const [cat, setCat] = useState('All');
   const cats = ['All', ...new Set(measures.map(m=>m.category))];
   const shown = cat==='All' ? measures : measures.filter(m=>m.category===cat);
-  const score = Math.round(measures.reduce((s,m) => {
-    const ms = getMeasureStatus(m);
-    return s + (ms==='on_track'?m.weight : ms==='at_risk'?m.weight*0.5 : 0);
-  }, 0));
+  // Achieved (full weight) or Not Achieved (0) — equal weights
+  const totalWt = measures.reduce((s,m) => s + m.weight, 0);
+  const score = Math.round(measures.reduce((s,m) => s + (getMeasureStatus(m)==='on_track' ? m.weight : 0), 0) / totalWt * 1000) / 10;
   const met = measures.filter(m=>getMeasureStatus(m)==='on_track').length;
 
   return <div className="fade-in" style={{ flex:1, overflow:'auto', padding:22 }}>
     <div style={{ display:'flex', gap:12, marginBottom:18 }}>
-      <KPI label="Composite Score"     value={`${score}/100`}        sub={`Target: ${c.qualityTarget}`}    delta={score-c.qualityTarget}        accent={T.accent}  T={T} />
-      <KPI label="Measures On Target"  value={`${met} / ${measures.length}`} sub="Fully meeting threshold"  accent="#10b981"  T={T} />
-      <KPI label="Weighted Pts Earned" value={`${score} pts`}        sub="Max 100"                                                              accent="#8b5cf6"   T={T} />
-      <KPI label="Quality Incentive"   value={fmtM(c.incentivePool*0.5*(score/100))} sub="Quality component" accent="#f59e0b"  T={T} />
+      <KPI label="Composite Score"     value={`${score}/100`}        sub={`Target: ${c.qualityTarget} (6 of 8 achieved)`}    delta={score-c.qualityTarget}        accent={T.accent}  T={T} />
+      <KPI label="Measures Achieved"   value={`${met} / ${measures.length}`} sub="At or better than target"  accent="#10b981"  T={T} />
+      <KPI label="Weighted Pts Earned" value={`${score} pts`}        sub="12.5 pts per measure · max 100"                                       accent="#8b5cf6"   T={T} />
+      <KPI label="Quality Incentive"   value={fmtM(c.incentivePool*QU_SHARE*(score/100))} sub="Quality & utilization component" accent="#f59e0b"  T={T} />
     </div>
 
     {/* Category tabs */}
@@ -1326,8 +1446,8 @@ const getMemberPanelByMonth = (c, monthIdx) => {
 };
 
 // ─── RISK ADJUSTMENT HELPERS ──────────────────────────────────────
-const getSuspectConditions = (c) => HCC_LIBRARY.map((hcc, i) => {
-  const seed = hash(c.id + ':hcc:' + i);
+const getSuspectConditions = (c) => hccLibraryFor(c).map((hcc) => {
+  const seed = hash(c.id + ':hcc:' + hcc.idx);
   const variance = 0.72 + ((seed % 100)/100) * 0.55;          // 0.72–1.27
   const prev = hcc.prevalence * variance;
   const eligible = Math.round(c.members * prev);
@@ -1360,9 +1480,10 @@ const getMemberRiskRows = (c) => {
     const priorRaf = +(Math.max(0.4, m.riskScore - change)).toFixed(2);
     const numSus = ((seed >> 5) % 4);                              // 0–3 suspect HCCs
     const hccs = [];
+    const lib = hccLibraryFor(c);
     for (let j = 0; j < numSus; j++) {
-      const idx = ((seed >> (j * 3 + 2)) % HCC_LIBRARY.length);
-      const hcc = HCC_LIBRARY[idx];
+      const idx = ((seed >> (j * 3 + 2)) % lib.length);
+      const hcc = lib[idx];
       if (!hccs.some(h => h.code === hcc.code)) hccs.push(hcc);
     }
     const recaptureOpp = hccs.reduce((s, h) => s + h.baseRaf, 0) * cap * 12;
@@ -2204,7 +2325,7 @@ const RiskCodingDrilldown = ({ c, T }) => {
       <div style={{ fontSize:11, color:T.faint, fontWeight:600, textTransform:'uppercase', letterSpacing:0.5, marginBottom:4 }}>{c.name}</div>
       <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-end' }}>
         <h1 style={{ fontSize:20, fontWeight:700, color:T.text }}>Risk Adjustment &amp; Coding</h1>
-        <div style={{ fontSize:12, color:T.muted }}>CMS-HCC v24 · {c.period} · refreshed 7 days ago</div>
+        <div style={{ fontSize:12, color:T.muted }}>{hccModelLabel(c)} · {c.period} · refreshed 7 days ago</div>
       </div>
     </div>
 
@@ -2222,7 +2343,7 @@ const RiskCodingDrilldown = ({ c, T }) => {
         <div style={{ flex:1, minWidth:280 }}>
           <div style={{ fontSize:13, fontWeight:700, color:T.text, marginBottom:4 }}>Net annual revenue impact</div>
           <div style={{ fontSize:12, color:T.muted, lineHeight:1.5 }}>
-            Panel-average RAF moved <strong style={{ color: rafDelta>=0?'#059669':'#dc2626' }}>{rafDelta>=0?'+':''}{rafDelta.toFixed(3)}</strong> year-over-year at ${mvmt.capPMPM}/pm capitation, equating to <strong>{revAtRisk>=0?'+':'−'}{fmtM(Math.abs(revAtRisk))}</strong> revenue. Closing all open suspect HCCs would recapture <strong style={{ color:'#059669' }}>+{fmtM(totalOpp)}</strong>.
+            Panel-average RAF moved <strong style={{ color: rafDelta>=0?'#059669':'#dc2626' }}>{rafDelta>=0?'+':''}{rafDelta.toFixed(3)}</strong> year-over-year at ${mvmt.capPMPM}/pm capitation, equating to <strong>{revAtRisk>=0?'+':'−'}{fmtM(Math.abs(revAtRisk))}</strong> revenue. Estimated potential revenue impact if suspected conditions are clinically confirmed, appropriately documented, and eligible for risk adjustment is <strong style={{ color:'#059669' }}>+{fmtM(totalOpp)}</strong>.
           </div>
         </div>
         <div style={{ display:'flex', gap:14, alignItems:'center' }}>
@@ -2416,7 +2537,7 @@ const COMPARE_SECTIONS = [
     name: 'Incentive Performance',
     rows: [
       { id:'pool',    label:'Incentive Pool',           get:c=>c.incentivePool,                              fmt:v=>fmtM(v),                                   dir:0 },
-      { id:'earned',  label:'Earned YTD',               get:c=>c.incentiveEarned,                            fmt:v=>fmtM(v),                                   dir:0 },
+      { id:'earned',  label:'Earned YTD (est.)',          get:c=>c.incentiveEarned,                            fmt:v=>fmtM(v),                                   dir:0 },
       { id:'epct',    label:'% of Pool Earned',         get:c=>c.incentiveEarned/c.incentivePool*100,
                                                          bench:cs=>CONTRACTS.reduce((s,c)=>s+c.incentiveEarned,0)/CONTRACTS.reduce((s,c)=>s+c.incentivePool,0)*100,
                                                          fmt:v=>v.toFixed(1)+'%',                          dir:1 },
@@ -2440,8 +2561,8 @@ const COMPARE_SECTIONS = [
     rows: [
       { id:'qs',      label:'Composite Score',          get:c=>c.qualityScore,
                                                          bench:cs=>{const t=CONTRACTS.reduce((s,c)=>s+c.members,0);return CONTRACTS.reduce((s,c)=>s+c.qualityScore*c.members,0)/t;},
-                                                         fmt:v=>v.toFixed(0)+'/100',                       dir:1 },
-      { id:'qsdelta', label:'Score vs Target',          get:c=>c.qualityScore-c.qualityTarget,               fmt:v=>(v>=0?'+':'')+v.toFixed(0)+' pts',        dir:1 },
+                                                         fmt:v=>(+v.toFixed(1))+'/100',                    dir:1 },
+      { id:'qsdelta', label:'Score vs Target',          get:c=>c.qualityScore-c.qualityTarget,               fmt:v=>(v>=0?'+':'')+(+v.toFixed(1))+' pts',     dir:1 },
       { id:'mot',     label:'Measures On-Target',       get:c=>{const ms=getMeasures(c.id);return ms.filter(m=>getMeasureStatus(m)==='on_track').length/ms.length*100;},
                                                          fmt:v=>v.toFixed(0)+'%',                          dir:1 },
     ],
@@ -3313,9 +3434,9 @@ const OpportunitiesPage = ({ onSelectContract, T }) => {
 
       {/* KPI strip */}
       <div style={{ display:'grid', gridTemplateColumns:'repeat(4, 1fr)', gap:12, marginBottom:14 }}>
-        <KPI label="Total Opportunity"      value={fmtM(totalOpp)}      sub={`Across ${allOpps.length} interventions · ${CONTRACTS.length} contracts`} accent={T.accent} T={T} />
-        <KPI label="Quality Incentives"     value={fmtM(qualitySum)}    sub={`${Math.round(qualitySum/totalOpp*100)}% of total · gap closures`} accent="#8b5cf6" T={T} />
-        <KPI label="Cost Savings"           value={fmtM(costSum)}       sub={`${Math.round(costSum/totalOpp*100)}% of total · operational levers`} accent="#10b981" T={T} />
+        <KPI label="Total Opportunity"      value={fmtM2(totalOpp)}     sub={`Across ${allOpps.length} interventions · ${CONTRACTS.length} contracts`} accent={T.accent} T={T} />
+        <KPI label="Quality Incentives"     value={fmtM2(qualitySum)}   sub={`${Math.round(qualitySum/totalOpp*100)}% of total · gap closures`} accent="#8b5cf6" T={T} />
+        <KPI label="Cost Savings"           value={fmtM2(costSum)}      sub={`${Math.round(costSum/totalOpp*100)}% of total · operational levers`} accent="#10b981" T={T} />
         <KPI label="Quick Wins"             value={`${quickWins.length}`} sub={`${fmtM(quickWinSum)} · Low effort, 1-3 mo`} accent={T.warn||'#f59e0b'} T={T} />
       </div>
 
@@ -3333,7 +3454,7 @@ const OpportunitiesPage = ({ onSelectContract, T }) => {
       <div style={{ background:T.cardBg, borderRadius:10, padding:'12px 18px', marginBottom:12, boxShadow:'0 1px 3px rgba(0,0,0,0.05)', display:'flex', alignItems:'center', gap:18, flexWrap:'wrap' }}>
         {/* Type filter */}
         <div style={{ display:'flex', alignItems:'center', gap:6 }}>
-          <span style={{ fontSize:10, color:T.faint, fontWeight:700, textTransform:'uppercase', letterSpacing:0.5 }}>Type</span>
+          <span style={{ fontSize:10, color:T.faint, fontWeight:700, textTransform:'uppercase', letterSpacing:0.5, display:'inline-flex', alignItems:'center' }}>Type<InfoTip text={OPP_TYPE_TIP} label="What Type means" /></span>
           {['all','Quality','Cost','Mixed'].map(t => {
             const active = filters.type === t;
             const st = OPP_TYPE_STYLE[t];
@@ -3422,7 +3543,7 @@ const OpportunitiesPage = ({ onSelectContract, T }) => {
             <input type="checkbox" checked={visible.length>0 && visible.every(o=>selected.has(o.id))} onChange={toggleAll} style={{ width:15, height:15, accentColor:T.accent, cursor:'pointer' }} />
           </div>
           <div>{sortBtn('name','Intervention')}</div>
-          <div>Type</div>
+          <div style={{ display:'flex', alignItems:'center' }}>Type<InfoTip text={OPP_TYPE_TIP} label="What Type means" /></div>
           <div style={{ textAlign:'right' }}>{sortBtn('totalDollars','Total $')}</div>
           <div>Contract split</div>
           <div style={{ textAlign:'right' }}>{sortBtn('totalMembers','Members')}</div>
@@ -3503,7 +3624,30 @@ const OpportunitiesPage = ({ onSelectContract, T }) => {
                             </div>
                           );
                         })}
+                        {o.perContract.length === 0 && (
+                          <div style={{ padding:'10px 14px', fontSize:12, color:T.muted }}>No contract can reach target on this measure this period.</div>
+                        )}
                       </div>
+                      {o.unreachable.length > 0 && <>
+                        <div style={{ fontSize:11, fontWeight:700, color:T.faint, textTransform:'uppercase', letterSpacing:0.5, margin:'14px 0 8px' }}>Quality target not reachable this period · $0 quality incentive</div>
+                        <div style={{ background:T.cardBg, borderRadius:8, border:`1px solid ${T.border}`, overflow:'hidden' }}>
+                          {o.unreachable.map((p, pi) => {
+                            const g = p.qualityGap;
+                            const unit = g.name.includes('per 1K') ? '' : '%';
+                            return (
+                              <button type="button" key={pi} className="row-hover" onClick={()=>onSelectContract(p.contract)} style={{ display:'grid', width:'100%', textAlign:'left', background:'none', border:'none', fontFamily:'inherit', gridTemplateColumns:'12px minmax(180px,2fr) minmax(200px,1.6fr) 60px', columnGap:10, padding:'10px 14px', borderBottom: pi<o.unreachable.length-1?`1px solid #f1f5f9`:'none', alignItems:'center', cursor:'pointer' }}>
+                                <span style={{ width:8, height:8, borderRadius:'50%', background:CONTRACT_COLOR[p.contract.id] || T.muted }} />
+                                <span>
+                                  <span style={{ display:'block', fontSize:12, fontWeight:600, color:T.text, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{p.contract.name}</span>
+                                  <span style={{ display:'block', fontSize:10, color:T.muted }}>{p.contract.payer} · {p.contract.type}</span>
+                                </span>
+                                <span style={{ fontSize:11, color:T.muted }}>Now {g.current}{unit} · ceiling {g.ceiling}{unit} · target {g.target}{unit}</span>
+                                <span style={{ fontSize:13, fontWeight:700, color:T.muted, textAlign:'right' }}>$0</span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </>}
                     </div>
 
                     {/* Right pane: summary + drivers */}
@@ -3659,15 +3803,8 @@ const OpportunitiesPage = ({ onSelectContract, T }) => {
 
 // ─── ALERTS PAGE ──────────────────────────────────────────────────
 const AlertsPage = ({ onSelectContract, T }) => {
-  const allAlerts = CONTRACTS.flatMap(c => {
-    const base = [];
-    if(c.alerts>=1) base.push({ contract:c, sev:'warning', msg:'Quality measure below threshold', detail:`${c.name} — Blood Pressure Control trending low` });
-    if(c.alerts>=2) base.push({ contract:c, sev:'warning', msg:'Data submission deadline approaching', detail:`${c.name} — Q1 quality data due in 14 days` });
-    if(c.alerts>=4) base.push({ contract:c, sev:'critical', msg:'Readmission rate above target', detail:`${c.name} — 30-day rate at ${(13.4*(MULTIPLIERS[c.id]||1)).toFixed(1)}% vs ${12}% target` });
-    if(c.alerts>=6) base.push({ contract:c, sev:'critical', msg:'Cost PMPM exceeds target', detail:`${c.name} — $${c.costPMPM}/pm vs $${c.costTarget} target` });
-    if(c.alerts>=8) base.push({ contract:c, sev:'critical', msg:'Minimum quality threshold at risk', detail:`${c.name} — Score ${c.qualityScore} approaching penalty trigger` });
-    return base;
-  });
+  const allAlerts = CONTRACTS.flatMap(c =>
+    c.alertList.map(a => ({ contract:c, sev:a.sev, msg:a.msg, detail:`${c.name} — ${a.short}` })));
   return <div className="fade-in" style={{ flex:1, overflow:'auto', padding:22 }}>
     <div style={{ fontSize:16, fontWeight:700, color:T.text, marginBottom:16 }}>All Alerts <span style={{ color:T.faint, fontSize:13, fontWeight:400 }}>({allAlerts.length} active)</span></div>
     {allAlerts.map((a,i) => (
@@ -3748,10 +3885,11 @@ const App = () => {
 
   const T = THEMES[tweaks.theme];
   const totalAlerts = CONTRACTS.reduce((s,c)=>s+c.alerts,0);
-  const totalOpps = PORTFOLIO_INTERVENTIONS.length;
+  // Count only interventions that appear on the Opportunities page
+  const totalOpps = useMemo(() => getPortfolioOpportunities().length, []);
 
   const crumbs = [
-    { label:'Contracts', onClick: page!=='list' && page!=='alerts_page' && page!=='opportunities' ? goList : null },
+    { label:'Contracts', onClick: page!=='list' ? () => { setContract(null); goList(); } : null },
     ...(contract && ['dashboard','measure','financial','memberpanel','risk','lever'].includes(page) ? [{ label:contract.name, onClick: page!=='dashboard' ? ()=>setPage('dashboard') : null }] : []),
     ...(page==='measure'     ? [{ label:'Quality Forecast' }] : []),
     ...(page==='financial'   ? [{ label:'Financial Detail' }] : []),

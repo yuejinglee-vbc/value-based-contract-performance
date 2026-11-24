@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Quality · Iteration</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body, #root { height: 100%; }
+  body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; background: #f1f5f9; color: #0f172a; }
+  button { font-family: inherit; }
+  ::-webkit-scrollbar { width: 8px; height: 8px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel" src="quality-shared.jsx"></script>
+<script type="text/babel" src="quality-detail.jsx"></script>
+<script type="text/babel" src="quality-forecast.jsx"></script>
+<script type="text/babel" src="quality-actionboard.jsx"></script>
+<script type="text/babel" data-presets="react">
+function VariationHeader({ tag, title, description }) {
+  return (
+    <div style={{
+      maxWidth: 1440, margin: '0 auto', padding: '36px 24px 18px',
+      borderBottom: '1px solid #e2e8f0',
+    }}>
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: 14 }}>
+        <span style={{
+          background: '#0f172a', color: '#fff', fontWeight: 700, fontSize: 13,
+          padding: '4px 12px', borderRadius: 999, letterSpacing: 0.5,
+        }}>{tag}</span>
+        <h2 style={{ fontSize: 28, fontWeight: 800, color: '#0f172a', letterSpacing: -0.4 }}>{title}</h2>
+      </div>
+      <p style={{ marginTop: 10, fontSize: 14, color: '#475569', maxWidth: 820 }}>{description}</p>
+    </div>
+  );
+}
+
+function App() {
+  return (
+    <div style={{ background: '#f1f5f9', minHeight: '100vh', paddingBottom: 60 }}>
+      <header style={{
+        maxWidth: 1440, margin: '0 auto', padding: '32px 24px 8px',
+      }}>
+        <div style={{ fontSize: 11, fontWeight: 700, color: '#94a3b8', letterSpacing: 0.8, textTransform: 'uppercase', marginBottom: 6 }}>
+          Value-Based Contract Performance · Quality Component
+        </div>
+        <h1 style={{ fontSize: 34, fontWeight: 800, color: '#0f172a', letterSpacing: -0.6 }}>Quality · Iteration</h1>
+        <p style={{ marginTop: 8, fontSize: 14, color: '#475569', maxWidth: 820 }}>
+          Two forecast-first redesigns that connect projection → required actions → dollars at stake.
+          Both directions share the same data and drilldown depth (workflow, providers, trend, member roster).
+          Anthem Commercial used as the demo contract.
+        </p>
+      </header>
+
+      <VariationHeader tag="A"
+        title="Forecast Cockpit"
+        description="Familiar table-oriented layout. EOY trajectory chart up top, measures ranked by $-upside-to-ceiling. Click any row to expand an inline drilldown with tabs for Workflow / Providers / Trend, plus a member-roster modal." />
+      <div style={{ maxWidth: 1440, margin: '0 auto' }}>
+        <QualityForecastView />
+      </div>
+
+      <div style={{ height: 40 }}></div>
+
+      <VariationHeader tag="B"
+        title="Action Plan Board"
+        description="Workbench feel. Per-measure cards with an 'earning ladder' that visualizes secured / pace / plan-unlock / remaining dollars. Tap action chips to build a plan in the right rail. Bottom drawer shows the focused measure with the same drilldown tabs." />
+      <div style={{ maxWidth: 1440, margin: '0 auto' }}>
+        <QualityActionBoardView />
+      </div>
+    </div>
+  );
+}
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>

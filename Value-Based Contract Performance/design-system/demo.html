@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VBC Design System Demo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body, #root { height: 100%; }
+  body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; background: var(--bg); }
+
+  :root {
+    --sidebar: #0c1a27;
+    --sidebar-border: rgba(255,255,255,0.06);
+    --sidebar-text: #6e98bc;
+    --sidebar-active: rgba(59,130,246,0.18);
+    --accent: #3b82f6;
+    --accent-dark: #1d4ed8;
+    --accent-light: #dbeafe;
+    --accent-text: #1e40af;
+    --bg: #eef2f7;
+    --card-bg: #ffffff;
+    --topbar: #ffffff;
+    --border: #e2e8f0;
+    --text: #0f172a;
+    --muted: #64748b;
+    --faint: #94a3b8;
+    --success: #10b981;
+    --success-bg: #d1fae5;
+    --warn: #f59e0b;
+    --warn-bg: #fef3c7;
+    --danger: #ef4444;
+    --danger-bg: #fee2e2;
+  }
+
+  ::-webkit-scrollbar { width: 5px; height: 5px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+
+  .nav-item { transition: background 0.12s, color 0.12s; cursor: pointer; border-left: 3px solid transparent; }
+  .nav-item:hover { background: rgba(255,255,255,0.07) !important; }
+  .nav-item.active { border-left-color: var(--accent) !important; }
+
+  .row-hover { cursor: pointer; transition: background 0.1s; }
+  .row-hover:hover { background: #f8fafc !important; }
+
+  .btn-base { cursor: pointer; border: none; transition: filter 0.12s; }
+  .btn-base:hover { filter: brightness(1.06); }
+
+  .fade-in { animation: fadeIn 0.18s ease both; }
+  @keyframes fadeIn { from { opacity:0; transform:translateY(5px); } to { opacity:1; transform:translateY(0); } }
+
+  .slide-up { animation: slideUp 0.22s ease both; }
+  @keyframes slideUp { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:translateY(0); } }
+
+  .bar-fill { transition: width 0.55s cubic-bezier(.4,0,.2,1); }
+
+  .demo-section { margin-bottom: 48px; }
+  .demo-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; }
+  .code-sample { background: #1e293b; color: #e2e8f0; padding: 14px 18px; borderRadius: 8px; fontSize: 12; fontFamily: 'Monaco, monospace'; overflow: auto; marginTop: 10px; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel" src="vbc-design-system.jsx"></script>
+<script type="text/babel">
+const { useState } = React;
+
+const Demo = () => {
+  const [theme, setTheme] = useState('ocean');
+  const [modalOpen, setModalOpen] = useState(false);
+  const [snackOpen, setSnackOpen] = useState(false);
+  const [sortKey, setSortKey] = useState('name');
+  const [sortDir, setSortDir] = useState('asc');
+
+  const T = THEMES[theme];
+
+  // Apply theme to CSS vars
+  React.useEffect(() => {
+    Object.entries(T).forEach(([k, v]) => {
+      if (k !== 'label') document.documentElement.style.setProperty(`--${k.replace(/([A-Z])/g, '-$1').toLowerCase()}`, v);
+    });
+  }, [T]);
+
+  const handleSort = (key) => {
+    if (sortKey === key) setSortDir(sortDir === 'asc' ? 'desc' : 'asc');
+    else { setSortKey(key); setSortDir('asc'); }
+  };
+
+  const demoData = [
+    { name: 'Blue Shield PPO', members: 8420, pmpm: 412, status: 'On track' },
+    { name: 'Anthem Commercial', members: 12150, pmpm: 438, status: 'At risk' },
+    { name: 'Medicare ACO', members: 3280, pmpm: 892, status: 'On track' },
+  ].sort((a,b) => {
+    const m = sortDir === 'asc' ? 1 : -1;
+    return (a[sortKey] > b[sortKey] ? 1 : -1) * m;
+  });
+
+  return (
+    <div style={{ padding: '40px 60px', maxWidth: 1400, margin: '0 auto' }}>
+      {/* Header */}
+      <div style={{ marginBottom: 40, borderBottom: `2px solid ${T.border}`, paddingBottom: 24 }}>
+        <h1 style={{ fontSize: 32, fontWeight: 700, color: T.text, marginBottom: 8 }}>VBC Design System</h1>
+        <p style={{ fontSize: 14, color: T.muted, marginBottom: 16 }}>Reusable components and patterns for value-based care dashboards</p>
+        <div style={{ display: 'flex', gap: 8 }}>
+          {Object.keys(THEMES).map(t => (
+            <button key={t} onClick={() => setTheme(t)} className="btn-base"
+              style={{ background: theme === t ? T.accent : T.cardBg, color: theme === t ? '#fff' : T.text, border: `1px solid ${T.border}`, padding: '6px 14px', borderRadius: 6, fontSize: 12, fontWeight: 600 }}>
+              {THEMES[t].label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* KPI Cards */}
+      <div className="demo-section">
+        <h2 style={{ fontSize: 20, fontWeight: 700, color: T.text, marginBottom: 16 }}>KPI Cards</h2>
+        <div className="demo-grid">
+          <KPI label="Total Contracts" value="6" sub="3 on track, 2 at risk, 1 below" accent={T.accent} T={T} />
+          <KPI label="Attributed Members" value="42,830" sub="↑ 2.3% vs prior period" accent={T.success} T={T} />
+          <KPI label="Avg Cost PMPM" value="$456" sub="Target: $442 (−$14 gap)" accent={T.warn} T={T} />
+          <KPI label="Quality Score" value="72.4" sub="Target: 75.0 (−2.6 pts)" accent={T.danger} T={T} />
+        </div>
+        <pre className="code-sample">{`<KPI label="Total Contracts" value="6" sub="3 on track..." accent={T.accent} T={T} />`}</pre>
+      </div>
+
+      {/* Delta Chips */}
+      <div className="demo-section">
+        <h2 style={{ fontSize: 20, fontWeight: 700, color: T.text, marginBottom: 16 }}>Delta Chips</h2>
+        <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap' }}>
+          <DeltaChip value="$456" delta={14} unit="/pm" lowerIsBetter={true} T={T} />
+          <DeltaChip value="72.4" delta={-2.6} unit=" pts" lowerIsBetter={false} T={T} />
+          <DeltaChip value="8,420" delta={0} unit="" T={T} />
+        </div>
+        <pre className="code-sample">{`<DeltaChip value="$456" delta={14} unit="/pm" lowerIsBetter={true} T={T} />`}</pre>
+      </div>
+
+      {/* Status Badges */}
+      <div className="demo-section">
+        <h2 style={{ fontSize: 20, fontWeight: 700, color: T.text, marginBottom: 16 }}>Status Badges</h2>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          <StatusBadge label="On track" color={T.success} bg={T.successBg} T={T} />
+          <StatusBadge label="At risk" color={T.warn} bg={T.warnBg} T={T} />
+          <StatusBadge label="Below target" color={T.danger} bg={T.dangerBg} T={T} />
+          <StatusBadge label="Draft" color={T.faint} bg={T.bg} T={T} />
+        </div>
+        <pre className="code-sample">{`<StatusBadge label="On track" color={T.success} bg={T.successBg} T={T} />`}</pre>
+      </div>
+
+      {/* Progress Bars */}
+      <div className="demo-section">
+        <h2 style={{ fontSize: 20, fontWeight: 700, color: T.text, marginBottom: 16 }}>Progress Bars</h2>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <div>
+            <div style={{ fontSize: 12, color: T.muted, marginBottom: 6 }}>Quality score: 72 / 75 target</div>
+            <ProgressBar value={72} target={75} max={100} height={10} T={T} />
+          </div>
+          <div>
+            <div style={{ fontSize: 12, color: T.muted, marginBottom: 6 }}>Members enrolled: 8,420 / 10,000 target</div>
+            <ProgressBar value={8420} target={10000} max={12000} height={10} T={T} />
+          </div>
+        </div>
+        <pre className="code-sample">{`<ProgressBar value={72} target={75} max={100} height={10} T={T} />`}</pre>
+      </div>
+
+      {/* Sparklines */}
+      <div className="demo-section">
+        <h2 style={{ fontSize: 20, fontWeight: 700, color: T.text, marginBottom: 16 }}>Sparklines</h2>
+        <div style={{ display: 'flex', gap: 30, flexWrap: 'wrap', alignItems: 'center' }}>
+          <div>
+            <div style={{ fontSize: 11, color: T.faint, marginBottom: 4 }}>Cost trend (12mo)</div>
+            <Spark points={[412, 418, 425, 430, 438, 442, 445, 448, 452, 456, 458, 461]} width={90} height={28} color={T.danger} T={T} />
+          </div>
+          <div>
+            <div style={{ fontSize: 11, color: T.faint, marginBottom: 4 }}>Quality trend (12mo)</div>
+            <Spark points={[68, 69, 70, 71, 70, 71, 72, 72, 73, 72, 72, 72]} width={90} height={28} color={T.success} T={T} />
+          </div>
+        </div>
+        <pre className="code-sample">{`<Spark points={[412,418,425...]} width={90} height={28} color={T.danger} T={T} />`}</pre>
+      </div>
+
+      {/* Buttons */}
+      <div className="demo-section">
+        <h2 style={{ fontSize: 20, fontWeight: 700, color: T.text, marginBottom: 16 }}>Buttons</h2>
+        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+          <Button variant="primary">Primary Action</Button>
+          <Button variant="secondary">Secondary</Button>
+          <Button variant="ghost">Ghost</Button>
+          <Button variant="primary" disabled>Disabled</Button>
+        </div>
+        <pre className="code-sample">{`<Button variant="primary">Primary Action</Button>`}</pre>
+      </div>
+
+      {/* Filter Chips */}
+      <div className="demo-section">
+        <h2 style={{ fontSize: 20, fontWeight: 700, color: T.text, marginBottom: 16 }}>Filter Chips</h2>
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+          <FilterChip label="All contracts" isActive={true} T={T} />
+          <FilterChip label="On track" isActive={false} color={T.success} bg={T.successBg} T={T} />
+          <FilterChip label="At risk" isActive={false} color={T.warn} bg={T.warnBg} T={T} />
+          <FilterChip label="Commercial" isActive={false} T={T} />
+          <FilterChip label="Medicare" isActive={false} T={T} />
+        </div>
+        <pre className="code-sample">{`<FilterChip label="All contracts" isActive={true} T={T} />`}</pre>
+      </div>
+
+      {/* Data Table */}
+      <div className="demo-section">
+        <h2 style={{ fontSize: 20, fontWeight: 700, color: T.text, marginBottom: 16 }}>Data Table (sortable)</h2>
+        <DataTable
+          columns={[
+            { key: 'name', label: 'Contract', sortable: true, width: '2fr' },
+            { key: 'members', label: 'Members', sortable: true, align: 'right', width: '100px', render: r => fmtN(r.members) },
+            { key: 'pmpm', label: 'PMPM', sortable: true, align: 'right', width: '90px', render: r => '$'+r.pmpm },
+            { key: 'status', label: 'Status', sortable: false, width: '110px', render: r => {
+              const colors = { 'On track': { c: T.success, bg: T.successBg }, 'At risk': { c: T.warn, bg: T.warnBg } };
+              const s = colors[r.status] || {};
+              return <StatusBadge label={r.status} color={s.c} bg={s.bg} T={T} />;
+            }},
+          ]}
+          data={demoData}
+          sortKey={sortKey}
+          sortDir={sortDir}
+          onSort={handleSort}
+          onRowClick={(r) => console.log('Clicked:', r)}
+          T={T}
+        />
+        <pre className="code-sample">{`<DataTable columns={[...]} data={demoData} sortKey={sortKey} sortDir={sortDir} onSort={handleSort} T={T} />`}</pre>
+      </div>
+
+      {/* Modal */}
+      <div className="demo-section">
+        <h2 style={{ fontSize: 20, fontWeight: 700, color: T.text, marginBottom: 16 }}>Modal</h2>
+        <Button variant="primary" onClick={() => setModalOpen(true)}>Open Modal</Button>
+        <Modal isOpen={modalOpen} onClose={() => setModalOpen(false)} T={T}>
+          <h3 style={{ fontSize: 18, fontWeight: 700, color: T.text, marginBottom: 8 }}>Modal Title</h3>
+          <p style={{ fontSize: 13, color: T.muted, marginBottom: 20 }}>This is a centered modal overlay with a backdrop. Click outside or the button below to close.</p>
+          <Button variant="secondary" onClick={() => setModalOpen(false)}>Close</Button>
+        </Modal>
+        <pre className="code-sample">{`<Modal isOpen={modalOpen} onClose={() => setModalOpen(false)} T={T}>...</Modal>`}</pre>
+      </div>
+
+      {/* Snackbar */}
+      <div className="demo-section">
+        <h2 style={{ fontSize: 20, fontWeight: 700, color: T.text, marginBottom: 16 }}>Snackbar</h2>
+        <div style={{ display: 'flex', gap: 10 }}>
+          <Button variant="primary" onClick={() => setSnackOpen(true)}>Show Snackbar</Button>
+        </div>
+        <Snackbar message="Action completed successfully!" isOpen={snackOpen} onClose={() => setSnackOpen(false)} variant="success" T={T} />
+        <pre className="code-sample">{`<Snackbar message="..." isOpen={snackOpen} onClose={...} variant="success" T={T} />`}</pre>
+      </div>
+
+      {/* Breadcrumb */}
+      <div className="demo-section">
+        <h2 style={{ fontSize: 20, fontWeight: 700, color: T.text, marginBottom: 16 }}>Breadcrumb</h2>
+        <Breadcrumb crumbs={[
+          { label: 'Contracts', onClick: () => console.log('nav') },
+          { label: 'Blue Shield PPO', onClick: () => console.log('nav') },
+          { label: 'Financial Detail' }
+        ]} T={T} />
+        <pre className="code-sample">{`<Breadcrumb crumbs={[{label:'Contracts', onClick:...}, ...]} T={T} />`}</pre>
+      </div>
+
+      {/* Card */}
+      <div className="demo-section">
+        <h2 style={{ fontSize: 20, fontWeight: 700, color: T.text, marginBottom: 16 }}>Card Container</h2>
+        <Card pad={20} style={{ maxWidth: 500 }}>
+          <SectionHead eyebrow="Q1 2026" title="Performance Summary" />
+          <p style={{ fontSize: 13, color: T.muted, lineHeight: 1.6 }}>
+            The Card component provides consistent container styling with optional padding, border-radius, and shadow. Use SectionHead inside for consistent header formatting.
+          </p>
+        </Card>
+        <pre className="code-sample">{`<Card pad={20}>\n  <SectionHead eyebrow="Q1 2026" title="Performance Summary" />\n  ...\n</Card>`}</pre>
+      </div>
+
+      {/* Footer */}
+      <div style={{ marginTop: 80, paddingTop: 24, borderTop: `1px solid ${T.border}`, fontSize: 12, color: T.muted, textAlign: 'center' }}>
+        VBC Design System — extracted from Value-Based Contract Performance project
+      </div>
+    </div>
+  );
+};
+
+const root = ReactDOM.createRoot(document.getElementById('root'));
+root.render(<Demo />);
+</script>
+</body>
+</html>
